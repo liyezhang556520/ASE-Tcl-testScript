@@ -1,0 +1,145 @@
+CREATE TABLE t1(a INTEGER, b INTEGER, c INTEGER, d INTEGER, e INTEGER, x VARCHAR(30));
+
+INSERT INTO t1(c,a,e,d,b,x) VALUES(NULL,15,NULL,9,0,'row 1');
+
+INSERT INTO t1(a,e,c,b,d,x) VALUES(12,9,9,43,9,'row 2');
+
+INSERT INTO t1(e,c,b,d,a,x) VALUES(7,7,7,25,14,'row 3');
+
+INSERT INTO t1(c,a,e,d,b,x) VALUES(13,38,41,21,28,'row 4');
+
+INSERT INTO t1(b,e,c,a,d,x) VALUES(27,10,5,2,8,'row 5');
+
+INSERT INTO t1(c,e,b,a,d,x) VALUES(5,6,6,24,9,'row 6');
+
+INSERT INTO t1(a,e,b,d,c,x) VALUES(16,23,25,16,15,'row 7');
+
+INSERT INTO t1(b,c,a,d,e,x) VALUES(12,7,11,NULL,20,'row 8');
+
+INSERT INTO t1(d,b,a,e,c,x) VALUES(13,19,NULL,15,16,'row 9');
+
+INSERT INTO t1(e,b,d,c,a,x) VALUES(31,18,9,27,15,'row 10');
+
+INSERT INTO t1(b,a,d,e,c,x) VALUES(5,4,13,6,31,'row 11');
+
+INSERT INTO t1(d,c,b,e,a,x) VALUES(12,19,27,30,7,'row 12');
+
+INSERT INTO t1(e,c,d,a,b,x) VALUES(24,22,14,NULL,23,'row 13');
+
+INSERT INTO t1(a,e,d,c,b,x) VALUES(21,NULL,15,43,23,'row 14');
+
+INSERT INTO t1(b,d,e,c,a,x) VALUES(12,30,9,10,20,'row 15');
+
+INSERT INTO t1(c,e,a,b,d,x) VALUES(45,18,16,20,17,'row 16');
+
+INSERT INTO t1(a,e,d,b,c,x) VALUES(7,24,17,25,6,'row 17');
+
+INSERT INTO t1(e,b,a,c,d,x) VALUES(38,14,42,19,18,'row 18');
+
+INSERT INTO t1(a,b,e,d,c,x) VALUES(19,45,36,27,26,'row 19');
+
+INSERT INTO t1(d,c,b,a,e,x) VALUES(15,48,9,21,16,'row 20');
+
+INSERT INTO t1(e,b,a,d,c,x) VALUES(NULL,23,NULL,15,15,'row 21');
+
+INSERT INTO t1(b,a,e,c,d,x) VALUES(31,22,27,21,22,'row 22');
+
+INSERT INTO t1(a,d,c,b,e,x) VALUES(25,NULL,32,14,29,'row 23');
+
+INSERT INTO t1(d,b,a,c,e,x) VALUES(22,23,7,17,7,'row 24');
+
+INSERT INTO t1(d,e,b,c,a,x) VALUES(39,12,40,26,21,'row 25');
+
+INSERT INTO t1(d,e,c,b,a,x) VALUES(17,20,45,30,23,'row 26');
+
+INSERT INTO t1(d,c,e,b,a,x) VALUES(49,15,42,26,24,'row 27');
+
+INSERT INTO t1(d,a,b,c,e,x) VALUES(41,18,21,21,14,'row 28');
+
+INSERT INTO t1(d,c,a,e,b,x) VALUES(15,12,37,29,NULL,'row 29');
+
+INSERT INTO t1(e,b,c,a,d,x) VALUES(12,17,28,44,33,'row 30');
+
+SELECT c,
+       CASE WHEN a<b-3 THEN 111 WHEN a<=b THEN 222
+        WHEN a<b+3 THEN 333 ELSE 444 END
+  FROM t1
+
+
+=========================================================
+SELECT (SELECT count(*) FROM t1  x WHERE x.c>t1.c AND x.d<t1.d),
+       a-b,
+       c,
+       abs(a),
+       CASE WHEN a<b-3 THEN 111 WHEN a<=b THEN 222
+        WHEN a<b+3 THEN 333 ELSE 444 END
+  FROM (SELECT (SELECT count(*) FROM t1  x WHERE x.c>t1.c AND x.d<t1.d),
+       a-b,
+       c,
+       abs(a),
+       CASE WHEN a<b-3 THEN 111 WHEN a<=b THEN 222
+        WHEN a<b+3 THEN 333 ELSE 444 END,
+       d,
+       (SELECT count(*) FROM t1  x WHERE x.c>t1.c AND x.d<t1.d)
+  FROM t1)
+
+
+=========================================================
+SELECT a+b*2
+  FROM (SELECT a+b*2,
+       CASE WHEN c>(SELECT avg(c) FROM t1) THEN a*2 ELSE b*10 END
+  FROM t1)
+
+
+=========================================================
+SELECT a+b*2+c*3+d*4+e*5
+  FROM t1
+
+
+=========================================================
+SELECT a+b*2+c*3+d*4+e*5
+  FROM t1
+
+
+=========================================================
+SELECT a+b*2+c*3,
+       c,
+       b
+  FROM (SELECT a+b*2+c*3,
+       c,
+       b
+  FROM t1)
+
+
+=========================================================
+SELECT c,
+       b-c,
+       c-d
+  FROM (SELECT c,
+       b-c,
+       c-d
+  FROM t1)
+
+
+=========================================================
+SELECT a+b*2+c*3
+  FROM t1
+
+
+=========================================================
+SELECT CASE WHEN a<b-3 THEN 111 WHEN a<=b THEN 222
+        WHEN a<b+3 THEN 333 ELSE 444 END,
+       b-c,
+       (SELECT count(*) FROM t1  x WHERE x.b<t1.b),
+       d,
+       CASE a+1 WHEN b THEN 111 WHEN c THEN 222
+        WHEN d THEN 333  WHEN e THEN 444 ELSE 555 END
+  FROM t1
+
+
+=========================================================
+SELECT (SELECT count(*) FROM t1  x WHERE x.c>t1.c AND x.d<t1.d)
+  FROM t1
+
+
+=========================================================
