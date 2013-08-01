@@ -50,18 +50,19 @@ for {set i 0} {$i<30} {incr i} {
 
 set rexpr {
   a b c d e
-  a-b b-c c-d d-e
-  a+b*2 a+b*2+c*3 a+b*2+c*3+d*4 a+b*2+c*3+d*4+e*5
-  (a+b+c+d+e)/5
-  abs(a) abs(b-c)
-  {(SELECT count(*) FROM t1  x WHERE x.b<t1.b)}
-  {(SELECT count(*) FROM t1  x WHERE x.c>t1.c AND x.d<t1.d)}
-  {CASE WHEN c>(SELECT avg(c) FROM t1) THEN a*2 ELSE b*10 END}
-  {CASE WHEN a<b-3 THEN 111 WHEN a<=b THEN 222
-        WHEN a<b+3 THEN 333 ELSE 444 END}
-  {CASE a+1 WHEN b THEN 111 WHEN c THEN 222
-        WHEN d THEN 333  WHEN e THEN 444 ELSE 555 END}
+  abs(a)
 }
+#  abs(b-c)
+#  a-b b-c c-d d-e
+#  a+b*2 a+b*2+c*3 a+b*2+c*3+d*4 a+b*2+c*3+d*4+e*5
+#  (a+b+c+d+e)/5
+#  {(SELECT count(*) FROM t1  x WHERE x.b<t1.b)}
+#  {(SELECT count(*) FROM t1  x WHERE x.c>t1.c AND x.d<t1.d)}
+#  {CASE WHEN c>(SELECT avg(c) FROM t1) THEN a*2 ELSE b*10 END}
+#  {CASE WHEN a<b-3 THEN 111 WHEN a<=b THEN 222
+#        WHEN a<b+3 THEN 333 ELSE 444 END}
+#  {CASE a+1 WHEN b THEN 111 WHEN c THEN 222
+#        WHEN d THEN 333  WHEN e THEN 444 ELSE 555 END}
 set nrexpr [llength $rexpr]
 set sequence {}
 set type {}
@@ -69,6 +70,7 @@ for {set i 1} {$i<=$nrexpr} {incr i} {
   lappend sequence $i
   append type I
 }
+
 set wexpr {
   a>b
   b>c
@@ -105,6 +107,18 @@ proc select_clause {depth UpSelColList indent} {
   foreach x [lrange [scramble $rexpr] 1 $selColNums] {
     lappend currSelColList $x
   }
+
+# From clause  
+  set fromExpr {}
+  set retFromExprGen [from_expr_gen $depth $currSelColList $indent]
+  append fromExpr [lindex $retFromExprGen 0]
+  set availbleCols [lindex $retFromExprGen 1]
+  set availbleColsLen [llength $availbleCols]
+  set selColListLen [expr {int(rand()*$availbleColsLen)}]
+  set temp [scramble $availbleCols]
+  set currSelColList [lrange $temp 0 $selColListLen]
+  set otherAvailbleCols [lrange $temp [expr $selColListLen+1] [expr $availbleColsLen-1]]
+  
   set p [expr rand()]
   set selClause "SELECT "
   if {$p<0.3333} {
@@ -121,11 +135,6 @@ proc select_clause {depth UpSelColList indent} {
     append selectSql $selClause
   }
 
-# From clause  
-  set fromExpr {}
-  set retFromExprGen [from_expr_gen $depth $currSelColList $indent]
-  append fromExpr [lindex $retFromExprGen 0]
-  set availbleCols [lindex $retFromExprGen 1]
   append selectSql "\n  $indent FROM " $fromExpr
   
 # WHERE clause
@@ -140,11 +149,11 @@ proc select_clause {depth UpSelColList indent} {
   set groupByClause {}
   if {$boolNeed(groupby) == 1} {
     set groupByClause "\n  $indent GROUP BY "
-    append groupByClause [groupby_expr_gen ]
+    append groupByClause [groupby_expr_gen $currSelColList $otherAvailbleCols]
   } else {
     if {rand()<0.5} {
       set groupByClause "\n  $indent GROUP BY "
-      append groupByClause [groupby_expr_gen ]
+      append groupByClause [groupby_expr_gen $currSelColList $otherAvailbleCols]
     } else {
       # nothing to do
     }
@@ -163,6 +172,7 @@ proc select_clause {depth UpSelColList indent} {
   set orderbyClause {}
   if {rand()<0.5} {
     set orderbyClause "\n  $indent ORDER BY "
+    append orderbyClause [orderby_expr_gen $availbleCols]
   }
   append selectSql $orderbyClause
 
@@ -207,6 +217,7 @@ proc from_expr_gen {depth selColList indent} {
   set retFromExprStruc {}
   lappend retFromExprStruc $fromExpr
   lappend retFromExprStruc $colFromTbls
+puts &&&&&&&&&&$colFromTbls
   return $retFromExprStruc
 }
 
@@ -217,8 +228,14 @@ proc where_expr_gen {} {
 }
 
 # auto generate GROUP BY expression
-proc groupby_expr_gen {} {
-  return a,b,c,d,e
+proc groupby_expr_gen {selListCols allCols} {
+  set retGroupbyExprGen {}
+  set ncols [llength $allCols]
+  set n [expr int(rand()*$ncols)]
+  set tmp [concat $selListCols [lrange [scramble $allCols] 1 $n]]
+  set retGroupbyExprGen [join [scramble $tmp] ,]
+#puts "tmp length [llength $tmp], allcols [llength $allCols], selLicols [llength $selListCols] n is $n retlength is [llength regGroupbyExprGen]"  
+  return $retGroupbyExprGen
 }
 
 # auto generate HAVING expression
@@ -227,15 +244,17 @@ proc having_expr_gen {} {
 }
 
 # auto generate ORDER BY expression
-proc orderby_expr_gen {} {
-  return a,b
+proc orderby_expr_gen {allCols} {
+  set ncols [llength $allCols]
+  set n [expr int(rand()*$ncols)]
+  return [join [lrange [scramble $allCols] 0 $n] ,]
 }
 
 
 
 
 
-for {set i 0} {$i<10} {incr i} {
+for {set i 0} {$i<100} {incr i} {
 puts [lindex [select_clause 4 {} {}] 0]
 puts {}
 puts "========================================================="
