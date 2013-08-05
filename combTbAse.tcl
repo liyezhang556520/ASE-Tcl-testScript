@@ -1,16 +1,13 @@
 #!/usr/local/bin/tclsh8.6
 #
 # Run this script to generate a prototype test script for
-# Single Table ASE query.
+# ASE query.
 #
-# This is the original test script generator.  It generates a single
-# table T1(a,b,c,d,e,x) with 5 INTEGER columns 1 VARCHAR column and 30 rows of
-# data, then does various queries against that table.
+# This is the original test script generator. 
 #
 expr {srand(0)}
 
 # Scramble the $inlist into a random order.
-#
 proc scramble {inlist} {
   set y {}
   foreach x $inlist {
@@ -24,29 +21,29 @@ proc scramble {inlist} {
   return $outlist
 }
 
-puts {CREATE TABLE t1(a INTEGER, b INTEGER, c INTEGER, d INTEGER, e INTEGER, x VARCHAR(30));}
-puts {}
+#puts {CREATE TABLE t1(a INTEGER, b INTEGER, c INTEGER, d INTEGER, e INTEGER, x VARCHAR(30));}
+#puts {}
 
-set nrow 0
-for {set i 0} {$i<30} {incr i} {
-  set base [expr {$i/3+int(rand()*15)}]
-  set values {}
-  for {set j 0} {$j<5} {incr j} {
-    if {rand()<0.05} {
-      lappend values NULL
-    } else {
-      lappend values [expr {int($j*rand()*10)+$base}]
-    }
-  }
-  incr nrow
-  set x "row $nrow"
-  set values [scramble $values]
-  set cols [scramble {a b c d e}]
-  set sql "INSERT INTO t1([join $cols ,],x) VALUES([join $values ,],'$x');"
-#  puts "statement ok"
-  puts $sql
-  puts ""
-}
+#set nrow 0
+#for {set i 0} {$i<30} {incr i} {
+#  set base [expr {$i/3+int(rand()*15)}]
+#  set values {}
+#  for {set j 0} {$j<5} {incr j} {
+#    if {rand()<0.05} {
+#      lappend values NULL
+#    } else {
+#      lappend values [expr {int($j*rand()*10)+$base}]
+#    }
+#  }
+#  incr nrow
+#  set x "row $nrow"
+#  set values [scramble $values]
+#  set cols [scramble {a b c d e}]
+#  set sql "INSERT INTO t1([join $cols ,],x) VALUES([join $values ,],'$x');"
+##  puts "statement ok"
+#  puts $sql
+#  puts ""
+#}
 
 
 set selColsCTypeExpr {
@@ -120,6 +117,8 @@ set singleColCTypeSelExpr {
 
 set singleColDTypeSelExpr {
   {SELECT HOURS FROM WORKS WHERE PNUM NOT IN (SELECT PNUM FROM WORKS WHERE PNUM IN ('P1','P2','P4','P5','P6'))}
+  {SELECT GRADE FROM STAFF}
+  {SELECT HOURS FROM WORKS}
 }
 
 set singleRowSelExpr {
@@ -372,7 +371,6 @@ proc groupby_expr_gen {selListCols otherCols} {
   set n [expr int(rand()*$ncols)]
   set tmp [concat $selListCols [lrange [scramble $otherCols] 1 [expr int($n/[expr int(rand()*5+1)])]]]
   set retGroupbyExprGen [join [scramble $tmp] ,]
-#puts "tmp length [llength $tmp], allcols [llength $allCols], selLicols [llength $selListCols] n is $n retlength is [llength regGroupbyExprGen]"  
   return $retGroupbyExprGen
 }
 
@@ -390,7 +388,7 @@ proc orderby_expr_gen {allCols} {
 
 set valCTypeExpr {
   'E1' 'E2' 'E3' 'E4' 'E5' 'Alice' 'Betty' 'Carmen' 'Don' 'Ed' 'Alpha'
-  'Deale' 'Vienna' Akron' 'P1' 'P2' 'P3' 'P4' 'P5' 'P6' 'P7'
+  'Deale' 'Vienna' 'Akron' 'P1' 'P2' 'P3' 'P4' 'P5' 'P6' 'P7'
 }
 
 set valDTypeExpr {
@@ -404,14 +402,14 @@ proc where-having_expr_gen {availCols indent} {
   global valCTypeExpr valDTypeExpr singleValueSelExpr singleColCTypeSelExpr singleColDTypeSelExpr singleRowSelExpr multiColSelExpr existsSelClauseList
   set nvalCTypeExpr [llength $valCTypeExpr]
   set nvalDTypeExpr [llength $valDTypeExpr]
-  set nsingleValueSelExpr [llength $singleValueSelExpr]
-  set nsingleColCTypeSelExpr [llength $singleColCTypeSelExpr]
-  set nsingleColDTypeSelExpr [llength $singleColDTypeSelExpr]
-  set nsingleRowSelExpr [llength $singleRowSelExpr]
-  set nmultiColSelExpr [llength $multiColSelExpr]
+#  set nsingleValueSelExpr [llength $singleValueSelExpr]
+#  set nsingleColCTypeSelExpr [llength $singleColCTypeSelExpr]
+#  set nsingleColDTypeSelExpr [llength $singleColDTypeSelExpr]
+#  set nsingleRowSelExpr [llength $singleRowSelExpr]
+#  set nmultiColSelExpr [llength $multiColSelExpr]
   set wherehavingExpr {}
   set nAvaliCols [llength $availCols]
-  set loopCounts [expr int(rand()*4)]
+  set loopCounts [expr int(rand()*3+1)]
   append indent "       "
   for {set i 0} {$i<$loopCounts} {incr i} {
     if {$i!=0} {
@@ -420,6 +418,9 @@ proc where-having_expr_gen {availCols indent} {
       } else {
         append wherehavingExpr "\n   $indent  OR  "
       }
+    }
+    if {rand()<0.2} {
+      append wherehavingExpr "NOT "
     }
     set leftOperand {}
     set rightHandCond {}
@@ -435,7 +436,7 @@ proc where-having_expr_gen {availCols indent} {
     } elseif {$p<0.8} {
       set leftOperand [lindex [scramble $availCols] 0]
       set searchRet [lsearch [list grade hours] $leftOperand]
-      if {$searchRet==1} {
+      if {$searchRet!=-1} {
         set leftOpIsDType 1
       }
     } else {
@@ -477,42 +478,151 @@ proc cond_right_side_gen {lOpIsDigitType} {
 proc compare_expr_gen {leftOpIsDType} {
   global compareOp
   set compareExpr {}
-  append compareExpr [lindex [scramble $compareOp] 3]
-  
+  append compareExpr "[lindex [scramble $compareOp] 3] "
+  set p [expr rand()]
+  if {$p<0.8} {
+    if {$leftOpIsDType==1} {
+      append compareExpr [single_DType_val_gen ]
+    } else {
+      append compareExpr [single_CType_val_gen ]
+    }
+  } else {
+    set pAnyALLSome [expr rand()]
+    if {$pAnyALLSome<0.3333} {
+      append compareExpr "ANY "
+    } elseif {$pAnyALLSome<0.6666} {
+      append compareExpr "ALL "
+    } else {
+      append compareExpr "SOME "
+    }
+    if {$leftOpIsDType==1} {
+      append compareExpr [digitType_coll_gen ] 
+    } else {
+      append compareExpr [charType_coll_gen ]
+    }
+  }
+  return compareExpr
 }
+
+
+# a collection of LIKE expr for digital type
+set likeDTypeExpr {
+  '1%' '2__%' '_3' '__' '_0' '%0'
+}
+
+# a collection of LIKE expr for string type
+set likeCTypeExpr {
+  'Al%' 'B__t%' '_3' '%4' 'P_' 'E%' 'Alice' 'T%' 'Deale' '__' '______'
+}
+
 
 # auto generate logic expression
 proc logic_expr_gen {leftOpIsDType} {
+  global likeDTypeExpr likeCTypeExpr
   set logicExpr {}
   set p [expr int(rand()*8)]
-  if {$p<1} {
-    append logicExpr "is NULL "
-  } elseif {$p<2} {
-    append logicExpr "is not NULL "
-  } elseif {$p<3} {
-    append logicExpr "in "
+  if {$p<2} {
+    if {$p<1} {
+      append logicExpr "is NULL "
+    } else {
+      append logicExpr "is not NULL "
+    }
   } elseif {$p<4} {
-    append logicExpr "not in "
-  } elseif {$p<5} {
-    append logicExpr "between "
+    if {$p<3} {
+      append logicExpr "in "
+    } else {
+      append logicExpr "not in "
+    }
+    if {$leftOpIsDType==1} {
+      append logicExpr [digitType_coll_gen ]
+    } else {
+      append logicExpr [charType_coll_gen ]
+    } 
   } elseif {$p<6} {
-    append logicExpr "not between "
-  } elseif {$p<7} {
-    append logicExpr "like "
+    if {$p<5} {
+      append logicExpr "between "
+    } else {
+      append logicExpr "not between "
+    }
+    if {$leftOpIsDType==1} {
+      append logicExpr "[single_DType_val_gen ] AND [single_DType_val_gen ]"
+    } else {
+      append logicExpr "[single_CType_val_gen ] AND [single_CType_val_gen ]"
+    } 
   } else {
-    append logicExpr "not lik "
+    if {$p<7} {
+      append logicExpr "like "
+    } else {
+      append logicExpr "not like "
+    }
+    if {$leftOpIsDType==1} {
+      append logicExpr [lindex [scramble $likeDTypeExpr] 1]
+    } else {
+      append logicExpr [lindex [scramble $likeCTypeExpr] 1]
+    }
+  }
+  return $logicExpr
+}
+
+# auto generate digital type collection like (1,2,3,4)
+proc digitType_coll_gen {} {
+  global singleColDTypeSelExpr singleValueSelExpr valDTypeExpr
+  set DTypeCollRet {}
+  set nvalDTypeExpr [llength $valDTypeExpr]
+  set p [expr rand()]
+  if {$p<0.2} {
+    append DTypeCollRet [lindex [scramble $singleColDTypeSelExpr] 0]
+  } else {
+    set pnDType [expr int(rand()*$nvalDTypeExpr)]
+    set numOnlyColl [lrange [scramble $valDTypeExpr] 0 $pnDType]
+    set subQColl {}
+    for {set i 0} {$i<8} {incr i} {
+      if {rand()<0.1} {
+        lappend subQColl "([lindex [scramble $singleValueSelExpr] 1])"
+      }
+    }
+    set DTypeCollRet [join [scramble [concat $numOnlyColl $subQColl]] ,]
+  }
+  return "($DTypeCollRet)"
+}
+
+# auto generate string type collection like ('a', 'b', 'c')
+proc charType_coll_gen {} {
+  global singleColCTypeSelExpr valCTypeExpr
+  set CTypeCollRet {}
+  set nvalCTypeExpr [llength $valCTypeExpr]
+  set p [expr rand()]
+  if {$p<0.5} {
+    append CTypeCollRet [lindex [scramble $singleColCTypeSelExpr] 0]
+  } else {
+    set pnCType [expr int(rand()*$nvalCTypeExpr)]
+    append CTypeCollRet [join [lrange [scramble $valCTypeExpr] 0 $pnCType] ,]
+  }
+  return "($CTypeCollRet)"
+}
+
+# auto generate a single digital value
+proc single_DType_val_gen {} {
+  global valDTypeExpr singleValueSelExpr
+  set p [expr rand()]
+  if {$p<0.1} {
+    return "([lindex [scramble $singleValueSelExpr] 0])"
+  } else {
+    return [lindex [scramble $valDTypeExpr] 0]
   }
 }
 
-
+# auto generate a single string value
+proc single_CType_val_gen {} {
+  global valCTypeExpr
+  return [lindex [scramble $valCTypeExpr] 0]
+}
 
 # main loop
-for {set i 0} {$i<100} {incr i} {
-puts [lindex [select_clause 2 {} {}] 0]
+for {set i 0} {$i<1000} {incr i} {
+puts "[lindex [select_clause 2 {} {}] 0];"
 puts {}
-puts "========================================================="
+puts "--========================================================="
 puts {}
 }
    
-
-
