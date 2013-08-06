@@ -199,7 +199,7 @@ set selWithOrderbyExpr {
 
 # the SELECT clause generate func
 proc select_clause {depth UpSelColList indent} {
-  global selColsCTypeExpr selColsDTypeExpr
+  global selColsCTypeExpr selColsDTypeExpr valCTypeExpr
   set selectSql {}
   set boolNeed(groupby) 0
   if {$depth == 0} { return "" }
@@ -234,7 +234,24 @@ proc select_clause {depth UpSelColList indent} {
   } elseif {$p<0.6666} {
     append selClause "DISTINCT "
   }
-  append selClause " [join $currSelColList ",\n       $indent"]"
+  set appendSelColList {}
+  set commAggrFun [list COUNT MAX MIN]
+  set p [expr rand()]
+  if {$p<0.08} {
+    lappend appendSelColList COUNT(*)
+    set boolNeed(groupby) 1 
+  } elseif {$p<0.2} {
+    set tmpFunExpr [lindex [scramble $commAggrFun] 1]
+    set tmpSelColList [scramble $currSelColList]
+    append tmpFunExpr "([lindex $tmpSelColList 0])"
+    set currSelColList [lrange $tmpSelColList 1 [llength $tmpSelColList]]
+    lappend appendSelColList $tmpFunExpr
+    set boolNeed(groupby) 1
+  } elseif {$p<0.3} {
+    lappend appendSeLColList [lindex [scramble $valCTypeExpr] 1] 
+  }
+  
+  append selClause "[join [scramble [concat $appendSelColList $currSelColList]]  ",\n       $indent"]"
 
 # add two parentheses for subquery
   if {[info level] != 1} {
@@ -619,10 +636,13 @@ proc single_CType_val_gen {} {
 }
 
 # main loop
-for {set i 0} {$i<1000} {incr i} {
-puts "[lindex [select_clause 2 {} {}] 0];"
-puts {}
-puts "--========================================================="
-puts {}
+for {set i 0} {$i<10000} {incr i} {
+  if {rand()<0.05} {
+    puts "EXPLAIN PLAN FOR "
+  }
+  puts "[lindex [select_clause 2 {} {}] 0];"
+  puts {}
+  puts "--========================================================="
+  puts {}
 }
    
